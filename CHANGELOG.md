@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.0] - 2026-07-17
+
+### Added
+- Session lifecycle: Start/Pause/Resume/End on confirmed subtasks (`convex/sessions.ts`), writing `pauseEvents` rows and computing `concentrationScore` on end.
+- Client-side webcam presence detection (`lib/webcamDetection.ts`, MediaPipe FaceLandmarker) and screen activity detection (`lib/screenDetection.ts`, frame-diffing proxy for cursor activity — the Screen Capture API has no literal cursor-position API).
+- Shared sustained-state drift timing (`lib/driftTimer.ts`), logging `driftEvents` (`webcam_away`, `screen_idle`) once a problem state ends and exceeded its threshold.
+- Focus streak logging every 10 continuous minutes without drift, with a toast notification.
+- `ActiveSessionPanel` on `/today`: elapsed time, Pause/Resume, End Session, optional screen sharing.
+- `webcamAvailable` field on `sessions`, set when webcam permission is denied.
+
 ## [0.4.0] - 2026-07-17
 
 ### Added
