@@ -1,11 +1,18 @@
 "use client";
 
-import { useAction, useMutation, useQuery } from "convex/react";
+import { useMutation, useQuery } from "convex/react";
 import { UserButton } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
+import { Clock, Plus } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Skeleton } from "@/components/ui/skeleton";
 import { ActiveSessionPanel } from "@/app/today/ActiveSessionPanel";
+import { TaskItem } from "@/app/today/TaskItem";
 
 function getTodayDateString() {
   const now = new Date();
@@ -24,209 +31,6 @@ function formatTime(timestamp: number) {
     hour: "2-digit",
     minute: "2-digit",
   });
-}
-
-type Subtask = {
-  _id: Id<"subtasks">;
-  title: string;
-  estimatedMinutes: number;
-  userEditedMinutes?: number;
-  difficulty: string;
-  completed: boolean;
-  confirmed?: boolean;
-};
-
-function SubtaskRow({
-  subtask,
-  sessionInProgress,
-  onStart,
-}: {
-  subtask: Subtask;
-  sessionInProgress: boolean;
-  onStart: (sessionId: Id<"sessions">, subtaskTitle: string) => void;
-}) {
-  const updateSubtask = useMutation(api.subtasks.updateSubtask);
-  const startSession = useMutation(api.sessions.startSession);
-  const [isEditing, setIsEditing] = useState(false);
-  const [isStarting, setIsStarting] = useState(false);
-  const [title, setTitle] = useState(subtask.title);
-  const [difficulty, setDifficulty] = useState(subtask.difficulty);
-  const [minutes, setMinutes] = useState(
-    String(subtask.userEditedMinutes ?? subtask.estimatedMinutes)
-  );
-
-  function startEditing() {
-    setTitle(subtask.title);
-    setDifficulty(subtask.difficulty);
-    setMinutes(String(subtask.userEditedMinutes ?? subtask.estimatedMinutes));
-    setIsEditing(true);
-  }
-
-  async function saveEdit() {
-    const parsedMinutes = Number(minutes);
-    if (!title.trim() || Number.isNaN(parsedMinutes) || parsedMinutes <= 0) {
-      return;
-    }
-    await updateSubtask({
-      subtaskId: subtask._id,
-      title: title.trim(),
-      difficulty,
-      minutes: parsedMinutes,
-    });
-    setIsEditing(false);
-  }
-
-  async function handleStart() {
-    setIsStarting(true);
-    try {
-      const sessionId = await startSession({ subtaskId: subtask._id });
-      onStart(sessionId, subtask.title);
-    } finally {
-      setIsStarting(false);
-    }
-  }
-
-  if (isEditing) {
-    return (
-      <li className="flex items-center gap-2">
-        <input
-          className="border rounded px-1 flex-1"
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <input
-          type="number"
-          className="border rounded px-1 w-16"
-          value={minutes}
-          onChange={(e) => setMinutes(e.target.value)}
-        />
-        <select
-          className="border rounded px-1"
-          value={difficulty}
-          onChange={(e) => setDifficulty(e.target.value)}
-        >
-          <option value="easy">easy</option>
-          <option value="medium">medium</option>
-          <option value="hard">hard</option>
-        </select>
-        <button type="button" className="underline" onClick={saveEdit}>
-          Save
-        </button>
-        <button
-          type="button"
-          className="underline"
-          onClick={() => setIsEditing(false)}
-        >
-          Cancel
-        </button>
-      </li>
-    );
-  }
-
-  const minutesDisplay = subtask.userEditedMinutes ?? subtask.estimatedMinutes;
-
-  return (
-    <li className="flex items-center gap-2">
-      {subtask.confirmed && <span title="Confirmed">✓</span>}
-      <span className="flex-1">{subtask.title}</span>
-      <span>{minutesDisplay} min</span>
-      <span className="text-gray-500">{subtask.difficulty}</span>
-      <button type="button" className="underline" onClick={startEditing}>
-        Edit
-      </button>
-      {subtask.confirmed && (
-        <button
-          type="button"
-          onClick={handleStart}
-          disabled={sessionInProgress || isStarting}
-          className="border rounded px-2 py-0.5 disabled:opacity-50"
-        >
-          {isStarting ? "Starting…" : "Start"}
-        </button>
-      )}
-    </li>
-  );
-}
-
-function TaskItem({
-  task,
-  sessionInProgress,
-  onStartSession,
-}: {
-  task: { _id: Id<"tasks">; title: string };
-  sessionInProgress: boolean;
-  onStartSession: (sessionId: Id<"sessions">, subtaskTitle: string) => void;
-}) {
-  const subtasks = useQuery(api.subtasks.getSubtasksForTask, {
-    taskId: task._id,
-  });
-  const generateBreakdown = useAction(api.breakdown.generateBreakdown);
-  const confirmSubtasks = useMutation(api.subtasks.confirmSubtasks);
-
-  const [isBreakingDown, setIsBreakingDown] = useState(false);
-  const [isConfirming, setIsConfirming] = useState(false);
-
-  const hasSubtasks = subtasks !== undefined && subtasks.length > 0;
-  const allConfirmed = hasSubtasks && subtasks.every((s) => s.confirmed);
-
-  async function handleBreakDown() {
-    setIsBreakingDown(true);
-    try {
-      await generateBreakdown({ taskId: task._id });
-    } finally {
-      setIsBreakingDown(false);
-    }
-  }
-
-  async function handleConfirm() {
-    setIsConfirming(true);
-    try {
-      await confirmSubtasks({ taskId: task._id });
-    } finally {
-      setIsConfirming(false);
-    }
-  }
-
-  return (
-    <li className="border rounded px-2 py-1 flex flex-col gap-2">
-      <div className="flex items-center justify-between gap-2">
-        <span>{task.title}</span>
-        <div className="flex items-center gap-2">
-          {hasSubtasks && !allConfirmed && (
-            <button
-              type="button"
-              onClick={handleConfirm}
-              disabled={isConfirming}
-              className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
-            >
-              {isConfirming ? "Confirming..." : "Confirm"}
-            </button>
-          )}
-          <button
-            type="button"
-            onClick={handleBreakDown}
-            disabled={isBreakingDown || hasSubtasks}
-            className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
-          >
-            {isBreakingDown ? "Breaking down..." : "Break down"}
-          </button>
-        </div>
-      </div>
-
-      {hasSubtasks && (
-        <ul className="flex flex-col gap-1 pl-4 text-sm">
-          {subtasks.map((subtask) => (
-            <SubtaskRow
-              key={subtask._id}
-              subtask={subtask}
-              sessionInProgress={sessionInProgress}
-              onStart={onStartSession}
-            />
-          ))}
-        </ul>
-      )}
-    </li>
-  );
 }
 
 export default function TodayPage() {
@@ -250,6 +54,7 @@ export default function TodayPage() {
   const [activeSession, setActiveSession] = useState<{
     sessionId: Id<"sessions">;
     subtaskTitle: string;
+    estimatedMinutes: number;
   } | null>(null);
 
   async function handleAddTask(e: React.FormEvent) {
@@ -289,95 +94,145 @@ export default function TodayPage() {
   }
 
   return (
-    <main className="mx-auto max-w-xl p-6 flex flex-col gap-8">
+    <main className="mx-auto flex max-w-6xl flex-col gap-6 p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-semibold">Today — {today}</h1>
         <UserButton />
       </div>
 
-      {schedule != null && (
-        <div className="border rounded px-3 py-2 text-sm">
-          If you start now, you can finish by {formatTime(schedule)}.
-        </div>
-      )}
-
-      {activeSession && (
+      {activeSession ? (
         <ActiveSessionPanel
           sessionId={activeSession.sessionId}
           subtaskTitle={activeSession.subtaskTitle}
+          estimatedMinutes={activeSession.estimatedMinutes}
           onEnded={() => setActiveSession(null)}
         />
+      ) : (
+        schedule != null && (
+          <Card className="bg-primary/5 border-primary/20">
+            <CardContent className="flex items-center gap-2 py-4">
+              <Clock className="text-primary h-4 w-4" />
+              <span className="text-sm">
+                If you start now, you can finish by{" "}
+                <strong>{formatTime(schedule)}</strong>.
+              </span>
+            </CardContent>
+          </Card>
+        )
       )}
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-medium">Tasks</h2>
-        <form onSubmit={handleAddTask} className="flex gap-2">
-          <input
-            className="border rounded px-2 py-1 flex-1"
-            placeholder="Task title"
-            value={taskTitle}
-            onChange={(e) => setTaskTitle(e.target.value)}
-          />
-          <button type="submit" className="border rounded px-3 py-1">
-            Add
-          </button>
-        </form>
-        <ul className="flex flex-col gap-1">
-          {tasks?.map((task) => (
-            <TaskItem
-              key={task._id}
-              task={task}
-              sessionInProgress={activeSession !== null}
-              onStartSession={(sessionId, subtaskTitle) =>
-                setActiveSession({ sessionId, subtaskTitle })
-              }
-            />
-          ))}
-          {tasks?.length === 0 && (
-            <li className="text-sm text-gray-500">No tasks yet.</li>
-          )}
-        </ul>
-      </section>
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[3fr_2fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Tasks</CardTitle>
+            <form onSubmit={handleAddTask} className="flex gap-2 pt-2">
+              <Label htmlFor="task-title" className="sr-only">
+                Task title
+              </Label>
+              <Input
+                id="task-title"
+                placeholder="Task title"
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+              />
+              <Button type="submit" size="icon" aria-label="Add task">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </form>
+          </CardHeader>
+          <CardContent className="flex flex-col gap-3">
+            {tasks === undefined && (
+              <>
+                <Skeleton className="h-20 w-full" />
+                <Skeleton className="h-20 w-full" />
+              </>
+            )}
+            {tasks?.map((task) => (
+              <TaskItem
+                key={task._id}
+                task={task}
+                sessionInProgress={activeSession !== null}
+                onStartSession={(sessionId, subtaskTitle, estimatedMinutes) =>
+                  setActiveSession({ sessionId, subtaskTitle, estimatedMinutes })
+                }
+              />
+            ))}
+            {tasks?.length === 0 && (
+              <p className="text-muted-foreground py-4 text-center text-sm">
+                No tasks yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
 
-      <section className="flex flex-col gap-3">
-        <h2 className="font-medium">Timetable</h2>
-        <form onSubmit={handleAddCommitment} className="flex flex-wrap gap-2">
-          <input
-            className="border rounded px-2 py-1 flex-1"
-            placeholder="Commitment title"
-            value={commitmentTitle}
-            onChange={(e) => setCommitmentTitle(e.target.value)}
-          />
-          <input
-            type="time"
-            className="border rounded px-2 py-1"
-            value={startTime}
-            onChange={(e) => setStartTime(e.target.value)}
-          />
-          <input
-            type="time"
-            className="border rounded px-2 py-1"
-            value={endTime}
-            onChange={(e) => setEndTime(e.target.value)}
-          />
-          <button type="submit" className="border rounded px-3 py-1">
-            Add
-          </button>
-        </form>
-        {commitmentError && (
-          <p className="text-sm text-red-600">{commitmentError}</p>
-        )}
-        <ul className="flex flex-col gap-1">
-          {commitments?.map((c) => (
-            <li key={c._id} className="border rounded px-2 py-1">
-              {formatTime(c.startTime)}–{formatTime(c.endTime)} {c.title}
-            </li>
-          ))}
-          {commitments?.length === 0 && (
-            <li className="text-sm text-gray-500">No commitments yet.</li>
-          )}
-        </ul>
-      </section>
+        <Card>
+          <CardHeader>
+            <CardTitle>Timetable</CardTitle>
+            <form
+              onSubmit={handleAddCommitment}
+              className="flex flex-wrap gap-2 pt-2"
+            >
+              <Label htmlFor="commitment-title" className="sr-only">
+                Commitment title
+              </Label>
+              <Input
+                id="commitment-title"
+                placeholder="Commitment title"
+                className="flex-1"
+                value={commitmentTitle}
+                onChange={(e) => setCommitmentTitle(e.target.value)}
+              />
+              <Label htmlFor="commitment-start" className="sr-only">
+                Start time
+              </Label>
+              <Input
+                id="commitment-start"
+                type="time"
+                className="w-fit"
+                value={startTime}
+                onChange={(e) => setStartTime(e.target.value)}
+              />
+              <Label htmlFor="commitment-end" className="sr-only">
+                End time
+              </Label>
+              <Input
+                id="commitment-end"
+                type="time"
+                className="w-fit"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+              <Button type="submit" size="icon" aria-label="Add commitment">
+                <Plus className="h-4 w-4" />
+              </Button>
+            </form>
+            {commitmentError && (
+              <p className="text-destructive text-sm">{commitmentError}</p>
+            )}
+          </CardHeader>
+          <CardContent className="flex flex-col gap-2">
+            {commitments === undefined && (
+              <>
+                <Skeleton className="h-10 w-full" />
+                <Skeleton className="h-10 w-full" />
+              </>
+            )}
+            {commitments?.map((c) => (
+              <div
+                key={c._id}
+                className="rounded-md border px-3 py-2 text-sm"
+              >
+                {formatTime(c.startTime)}–{formatTime(c.endTime)} {c.title}
+              </div>
+            ))}
+            {commitments?.length === 0 && (
+              <p className="text-muted-foreground py-4 text-center text-sm">
+                No commitments yet.
+              </p>
+            )}
+          </CardContent>
+        </Card>
+      </div>
     </main>
   );
 }
