@@ -15,6 +15,10 @@ export const createTimetableCommitment = mutation({
       throw new Error("Not authenticated");
     }
 
+    if (args.endTime <= args.startTime) {
+      throw new Error("End time must be after start time");
+    }
+
     return await ctx.db.insert("timetableCommitments", {
       userId: user._id,
       title: args.title,

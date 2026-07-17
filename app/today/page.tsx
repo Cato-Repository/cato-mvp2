@@ -199,6 +199,7 @@ export default function TodayPage() {
   const [commitmentTitle, setCommitmentTitle] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+  const [commitmentError, setCommitmentError] = useState<string | null>(null);
 
   const schedule = useQuery(api.schedule.getScheduleForToday, { date: today });
 
@@ -211,16 +212,31 @@ export default function TodayPage() {
 
   async function handleAddCommitment(e: React.FormEvent) {
     e.preventDefault();
+    setCommitmentError(null);
     if (!commitmentTitle.trim() || !startTime || !endTime) return;
-    await createCommitment({
-      title: commitmentTitle.trim(),
-      date: today,
-      startTime: timeStringToTimestamp(today, startTime),
-      endTime: timeStringToTimestamp(today, endTime),
-    });
-    setCommitmentTitle("");
-    setStartTime("");
-    setEndTime("");
+
+    const start = timeStringToTimestamp(today, startTime);
+    const end = timeStringToTimestamp(today, endTime);
+    if (end <= start) {
+      setCommitmentError("End time must be after start time.");
+      return;
+    }
+
+    try {
+      await createCommitment({
+        title: commitmentTitle.trim(),
+        date: today,
+        startTime: start,
+        endTime: end,
+      });
+      setCommitmentTitle("");
+      setStartTime("");
+      setEndTime("");
+    } catch (error) {
+      setCommitmentError(
+        error instanceof Error ? error.message : "Failed to add commitment."
+      );
+    }
   }
 
   return (
@@ -284,6 +300,9 @@ export default function TodayPage() {
             Add
           </button>
         </form>
+        {commitmentError && (
+          <p className="text-sm text-red-600">{commitmentError}</p>
+        )}
         <ul className="flex flex-col gap-1">
           {commitments?.map((c) => (
             <li key={c._id} className="border rounded px-2 py-1">
