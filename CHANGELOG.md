@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.6.0] - 2026-07-17
+
+### Added
+- shadcn/ui adopted app-wide (Radix primitives, indigo/violet accent over a neutral base, Lucide icons).
+- Homepage now redirects based on auth state instead of showing create-next-app boilerplate.
+- Sign-in page branded with a heading/tagline and background treatment.
+- `/today` restructured: a single "priority zone" (active session or schedule banner, never both), a responsive two-column Tasks/Timetable layout, Skeleton loading states, and a Dialog-based subtask editor replacing inline-row editing.
+- `ActiveSessionPanel` gained a progress bar (elapsed vs. estimated minutes), icon status badges, and a persistent destructive `Alert` for AFK warnings.
+- Focus-streak celebrations now use `sonner` toasts instead of hand-rolled toast state.
+
+### Fixed
+- Page `<title>`/description no longer say "Create Next App".
+- A self-referential `--font-sans` CSS variable left by shadcn's init.
+
 ## [0.5.0] - 2026-07-17
 
 ### Added
