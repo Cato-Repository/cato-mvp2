@@ -2,8 +2,27 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useMutation, useQuery } from "convex/react";
+import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
+import {
+  AlertTriangle,
+  Camera,
+  CameraOff,
+  Loader2,
+  MonitorCheck,
+  MonitorOff,
+  MonitorUp,
+  Pause,
+  Play,
+  Square,
+} from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Progress } from "@/components/ui/progress";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   startWebcamPresenceDetection,
   type WebcamDetectionHandle,
@@ -20,7 +39,6 @@ import { ensureNotificationPermission, notifyAfk } from "@/lib/notifications";
 const WEBCAM_AWAY_THRESHOLD_MS = 20_000;
 const SCREEN_IDLE_THRESHOLD_MS = 45_000;
 const FOCUS_STREAK_MS = 10 * 60 * 1000;
-const TOAST_DURATION_MS = 4_000;
 
 type WebcamStatus = WebcamPresenceState | "pending" | "unavailable";
 type ScreenStatus = ScreenActivityState | "not-shared";
@@ -35,10 +53,12 @@ function formatElapsed(ms: number) {
 export function ActiveSessionPanel({
   sessionId,
   subtaskTitle,
+  estimatedMinutes,
   onEnded,
 }: {
   sessionId: Id<"sessions">;
   subtaskTitle: string;
+  estimatedMinutes: number;
   onEnded: () => void;
 }) {
   const session = useQuery(api.sessions.getSession, { sessionId });
@@ -51,7 +71,6 @@ export function ActiveSessionPanel({
 
   const [webcamStatus, setWebcamStatus] = useState<WebcamStatus>("pending");
   const [screenStatus, setScreenStatus] = useState<ScreenStatus>("not-shared");
-  const [toast, setToast] = useState<string | null>(null);
   const [afkWarning, setAfkWarning] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [isEnding, setIsEnding] = useState(false);
@@ -63,7 +82,6 @@ export function ActiveSessionPanel({
   const screenStatusRef = useRef<ScreenStatus>("not-shared");
   const webcamHandleRef = useRef<WebcamDetectionHandle | null>(null);
   const screenHandleRef = useRef<ScreenDetectionHandle | null>(null);
-  const toastTimeoutRef = useRef<number | null>(null);
 
   const webcamDriftRef = useRef(
     createDriftTracker(
@@ -105,17 +123,6 @@ export function ActiveSessionPanel({
     return () => window.clearInterval(id);
   }, []);
 
-  function showToast(message: string) {
-    setToast(message);
-    if (toastTimeoutRef.current !== null) {
-      window.clearTimeout(toastTimeoutRef.current);
-    }
-    toastTimeoutRef.current = window.setTimeout(
-      () => setToast(null),
-      TOAST_DURATION_MS
-    );
-  }
-
   function updateFocusTracking() {
     const isDrifting =
       webcamStatusRef.current === "away" || screenStatusRef.current === "idle";
@@ -141,7 +148,7 @@ export function ActiveSessionPanel({
         focusRef.current.focusedSince + focusRef.current.loggedThroughMs;
       focusRef.current.loggedThroughMs += FOCUS_STREAK_MS;
       logFocusStreak({ sessionId, startTime: streakStart, durationSeconds: 600 });
-      showToast("🔥 Focused for 10 minutes!");
+      toast("🔥 Focused for 10 minutes!");
     }
   }
 
@@ -226,83 +233,111 @@ export function ActiveSessionPanel({
   }
 
   if (session === undefined) {
-    return null;
+    return (
+      <Card>
+        <CardContent className="py-6">
+          <Skeleton className="h-16 w-full" />
+        </CardContent>
+      </Card>
+    );
   }
   if (session === null) {
     return null;
   }
 
   const elapsedMs = now - session.startTime;
+  const progressPercent = Math.min(
+    100,
+    (elapsedMs / 1000 / 60 / estimatedMinutes) * 100
+  );
 
   return (
-    <div className="border rounded px-3 py-3 flex flex-col gap-2">
-      <div className="flex items-center justify-between">
-        <span className="font-medium">Working on: {subtaskTitle}</span>
-        <span className="text-sm">{formatElapsed(elapsedMs)}</span>
-      </div>
+    <Card className="border-primary/30">
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-base font-normal">
+          Working on: {subtaskTitle}
+        </CardTitle>
+        <span className="font-mono text-sm">{formatElapsed(elapsedMs)}</span>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-3">
+        <Progress value={progressPercent} />
 
-      <div className="flex items-center gap-3 text-xs text-gray-500">
-        <span>
-          Webcam:{" "}
-          {webcamStatus === "pending"
-            ? "starting…"
-            : webcamStatus === "unavailable"
-              ? "unavailable"
-              : webcamStatus}
-        </span>
-        <span>
-          Screen:{" "}
-          {screenStatus === "not-shared" ? "not shared" : screenStatus}
-        </span>
-      </div>
-
-      {afkWarning && (
-        <div className="border border-red-600 rounded px-2 py-1 text-sm w-fit text-red-600">
-          {afkWarning}
+        <div className="flex items-center gap-2">
+          <Badge variant={webcamStatus === "present" ? "secondary" : "outline"}>
+            {webcamStatus === "pending" ? (
+              <Loader2 className="h-3 w-3 animate-spin" />
+            ) : webcamStatus === "unavailable" || webcamStatus === "away" ? (
+              <CameraOff className="h-3 w-3" />
+            ) : (
+              <Camera className="h-3 w-3" />
+            )}
+            {webcamStatus === "pending"
+              ? "starting…"
+              : webcamStatus === "unavailable"
+                ? "unavailable"
+                : webcamStatus}
+          </Badge>
+          <Badge variant={screenStatus === "active" ? "secondary" : "outline"}>
+            {screenStatus === "active" ? (
+              <MonitorCheck className="h-3 w-3" />
+            ) : (
+              <MonitorOff className="h-3 w-3" />
+            )}
+            {screenStatus === "not-shared" ? "not shared" : screenStatus}
+          </Badge>
         </div>
-      )}
 
-      {toast && (
-        <div className="border rounded px-2 py-1 text-sm w-fit">{toast}</div>
-      )}
+        {afkWarning && (
+          <Alert variant="destructive">
+            <AlertTriangle />
+            <AlertTitle>{afkWarning}</AlertTitle>
+            <AlertDescription>
+              This will be logged as a drift event once you return.
+            </AlertDescription>
+          </Alert>
+        )}
 
-      <div className="flex items-center gap-2">
-        {session.status === "active" && (
-          <button
+        <div className="flex items-center gap-2">
+          {session.status === "active" && (
+            <Button type="button" variant="outline" size="sm" onClick={handlePause}>
+              <Pause className="h-4 w-4" />
+              Pause
+            </Button>
+          )}
+          {session.status === "paused" && (
+            <Button type="button" variant="outline" size="sm" onClick={handleResume}>
+              <Play className="h-4 w-4" />
+              Resume
+            </Button>
+          )}
+          {screenStatus === "not-shared" && (
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={handleShareScreen}
+            >
+              <MonitorUp className="h-4 w-4" />
+              Share screen
+            </Button>
+          )}
+          <Button
             type="button"
-            onClick={handlePause}
-            className="border rounded px-3 py-1 text-sm"
+            variant="outline"
+            size="sm"
+            onClick={handleEnd}
+            disabled={isEnding}
+            className="text-destructive hover:text-destructive ml-auto"
           >
-            Pause
-          </button>
-        )}
-        {session.status === "paused" && (
-          <button
-            type="button"
-            onClick={handleResume}
-            className="border rounded px-3 py-1 text-sm"
-          >
-            Resume
-          </button>
-        )}
-        {screenStatus === "not-shared" && (
-          <button
-            type="button"
-            onClick={handleShareScreen}
-            className="border rounded px-3 py-1 text-sm"
-          >
-            Share screen
-          </button>
-        )}
-        <button
-          type="button"
-          onClick={handleEnd}
-          disabled={isEnding}
-          className="border rounded px-3 py-1 text-sm disabled:opacity-50"
-        >
-          {isEnding ? "Ending…" : "End Session"}
-        </button>
-      </div>
-    </div>
+            {isEnding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Square className="h-4 w-4" />
+            )}
+            {isEnding ? "Ending…" : "End Session"}
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
   );
 }
