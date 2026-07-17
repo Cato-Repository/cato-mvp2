@@ -43,6 +43,7 @@ export default defineSchema({
     endTime: v.optional(v.number()),
     concentrationScore: v.optional(v.number()),
     status: v.string(),
+    webcamAvailable: v.optional(v.boolean()),
   }).index("by_userId", ["userId"]),
 
   driftEvents: defineTable({
