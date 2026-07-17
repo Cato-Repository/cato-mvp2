@@ -25,6 +25,7 @@ export default defineSchema({
     difficulty: v.string(),
     completed: v.boolean(),
     order: v.number(),
+    confirmed: v.optional(v.boolean()),
   }).index("by_taskId", ["taskId"]),
 
   timetableCommitments: defineTable({
