@@ -8,6 +8,8 @@
  * @module
  */
 
+import type * as breakdown from "../breakdown.js";
+import type * as subtasks from "../subtasks.js";
 import type * as tasks from "../tasks.js";
 import type * as timetable from "../timetable.js";
 import type * as users from "../users.js";
@@ -19,6 +21,8 @@ import type {
 } from "convex/server";
 
 declare const fullApi: ApiFromModules<{
+  breakdown: typeof breakdown;
+  subtasks: typeof subtasks;
   tasks: typeof tasks;
   timetable: typeof timetable;
   users: typeof users;
