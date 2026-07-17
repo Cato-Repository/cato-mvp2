@@ -1,5 +1,10 @@
 import { v } from "convex/values";
-import { internalMutation, mutation, query } from "./_generated/server";
+import {
+  internalMutation,
+  internalQuery,
+  mutation,
+  query,
+} from "./_generated/server";
 import { getCurrentUser } from "./users";
 
 export const getSubtasksForTask = query({
@@ -26,9 +31,11 @@ export const getSubtasksForTask = query({
   },
 });
 
-export const updateSubtaskEstimate = mutation({
+export const updateSubtask = mutation({
   args: {
     subtaskId: v.id("subtasks"),
+    title: v.string(),
+    difficulty: v.string(),
     minutes: v.number(),
   },
   handler: async (ctx, args) => {
@@ -47,7 +54,56 @@ export const updateSubtaskEstimate = mutation({
       throw new Error("Not authorized");
     }
 
-    await ctx.db.patch(args.subtaskId, { userEditedMinutes: args.minutes });
+    const currentMinutes = subtask.userEditedMinutes ?? subtask.estimatedMinutes;
+
+    await ctx.db.patch(args.subtaskId, {
+      title: args.title,
+      difficulty: args.difficulty,
+      ...(args.minutes !== currentMinutes
+        ? { userEditedMinutes: args.minutes }
+        : {}),
+    });
+  },
+});
+
+export const confirmSubtasks = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const task = await ctx.db.get(args.taskId);
+    if (task === null || task.userId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
+    const subtasks = await ctx.db
+      .query("subtasks")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .collect();
+
+    for (const subtask of subtasks) {
+      if (!subtask.confirmed) {
+        await ctx.db.patch(subtask._id, { confirmed: true });
+      }
+    }
+  },
+});
+
+export const hasSubtasksInternal = internalQuery({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const existing = await ctx.db
+      .query("subtasks")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .first();
+    return existing !== null;
   },
 });
 
@@ -72,6 +128,7 @@ export const insertGeneratedSubtasks = internalMutation({
         difficulty: subtask.difficulty,
         completed: false,
         order: i,
+        confirmed: false,
       });
     }
   },

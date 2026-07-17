@@ -17,6 +17,14 @@ export const generateBreakdown = action({
       throw new Error("Task not found");
     }
 
+    const alreadyHasSubtasks = await ctx.runQuery(
+      internal.subtasks.hasSubtasksInternal,
+      { taskId: args.taskId }
+    );
+    if (alreadyHasSubtasks) {
+      throw new Error("Task already has a breakdown");
+    }
+
     const subtasks = await decomposeTask(task.title);
 
     await ctx.runMutation(internal.subtasks.insertGeneratedSubtasks, {
