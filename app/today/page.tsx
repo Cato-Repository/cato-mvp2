@@ -1,6 +1,7 @@
 "use client";
 
 import { useAction, useMutation, useQuery } from "convex/react";
+import { UserButton } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
@@ -24,16 +25,110 @@ function formatTime(timestamp: number) {
   });
 }
 
+type Subtask = {
+  _id: Id<"subtasks">;
+  title: string;
+  estimatedMinutes: number;
+  userEditedMinutes?: number;
+  difficulty: string;
+  completed: boolean;
+  confirmed?: boolean;
+};
+
+function SubtaskRow({ subtask }: { subtask: Subtask }) {
+  const updateSubtask = useMutation(api.subtasks.updateSubtask);
+  const [isEditing, setIsEditing] = useState(false);
+  const [title, setTitle] = useState(subtask.title);
+  const [difficulty, setDifficulty] = useState(subtask.difficulty);
+  const [minutes, setMinutes] = useState(
+    String(subtask.userEditedMinutes ?? subtask.estimatedMinutes)
+  );
+
+  function startEditing() {
+    setTitle(subtask.title);
+    setDifficulty(subtask.difficulty);
+    setMinutes(String(subtask.userEditedMinutes ?? subtask.estimatedMinutes));
+    setIsEditing(true);
+  }
+
+  async function saveEdit() {
+    const parsedMinutes = Number(minutes);
+    if (!title.trim() || Number.isNaN(parsedMinutes) || parsedMinutes <= 0) {
+      return;
+    }
+    await updateSubtask({
+      subtaskId: subtask._id,
+      title: title.trim(),
+      difficulty,
+      minutes: parsedMinutes,
+    });
+    setIsEditing(false);
+  }
+
+  if (isEditing) {
+    return (
+      <li className="flex items-center gap-2">
+        <input
+          className="border rounded px-1 flex-1"
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
+        />
+        <input
+          type="number"
+          className="border rounded px-1 w-16"
+          value={minutes}
+          onChange={(e) => setMinutes(e.target.value)}
+        />
+        <select
+          className="border rounded px-1"
+          value={difficulty}
+          onChange={(e) => setDifficulty(e.target.value)}
+        >
+          <option value="easy">easy</option>
+          <option value="medium">medium</option>
+          <option value="hard">hard</option>
+        </select>
+        <button type="button" className="underline" onClick={saveEdit}>
+          Save
+        </button>
+        <button
+          type="button"
+          className="underline"
+          onClick={() => setIsEditing(false)}
+        >
+          Cancel
+        </button>
+      </li>
+    );
+  }
+
+  const minutesDisplay = subtask.userEditedMinutes ?? subtask.estimatedMinutes;
+
+  return (
+    <li className="flex items-center gap-2">
+      {subtask.confirmed && <span title="Confirmed">✓</span>}
+      <span className="flex-1">{subtask.title}</span>
+      <span>{minutesDisplay} min</span>
+      <span className="text-gray-500">{subtask.difficulty}</span>
+      <button type="button" className="underline" onClick={startEditing}>
+        Edit
+      </button>
+    </li>
+  );
+}
+
 function TaskItem({ task }: { task: { _id: Id<"tasks">; title: string } }) {
   const subtasks = useQuery(api.subtasks.getSubtasksForTask, {
     taskId: task._id,
   });
   const generateBreakdown = useAction(api.breakdown.generateBreakdown);
-  const updateEstimate = useMutation(api.subtasks.updateSubtaskEstimate);
+  const confirmSubtasks = useMutation(api.subtasks.confirmSubtasks);
 
   const [isBreakingDown, setIsBreakingDown] = useState(false);
-  const [editingId, setEditingId] = useState<Id<"subtasks"> | null>(null);
-  const [editValue, setEditValue] = useState("");
+  const [isConfirming, setIsConfirming] = useState(false);
+
+  const hasSubtasks = subtasks !== undefined && subtasks.length > 0;
+  const allConfirmed = hasSubtasks && subtasks.every((s) => s.confirmed);
 
   async function handleBreakDown() {
     setIsBreakingDown(true);
@@ -44,65 +139,46 @@ function TaskItem({ task }: { task: { _id: Id<"tasks">; title: string } }) {
     }
   }
 
-  function startEditing(subtaskId: Id<"subtasks">, currentMinutes: number) {
-    setEditingId(subtaskId);
-    setEditValue(String(currentMinutes));
-  }
-
-  async function commitEdit(subtaskId: Id<"subtasks">) {
-    const minutes = Number(editValue);
-    if (!Number.isNaN(minutes) && minutes > 0) {
-      await updateEstimate({ subtaskId, minutes });
+  async function handleConfirm() {
+    setIsConfirming(true);
+    try {
+      await confirmSubtasks({ taskId: task._id });
+    } finally {
+      setIsConfirming(false);
     }
-    setEditingId(null);
   }
 
   return (
     <li className="border rounded px-2 py-1 flex flex-col gap-2">
       <div className="flex items-center justify-between gap-2">
         <span>{task.title}</span>
-        <button
-          type="button"
-          onClick={handleBreakDown}
-          disabled={isBreakingDown}
-          className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
-        >
-          {isBreakingDown ? "Breaking down..." : "Break down"}
-        </button>
+        <div className="flex items-center gap-2">
+          {hasSubtasks && !allConfirmed && (
+            <button
+              type="button"
+              onClick={handleConfirm}
+              disabled={isConfirming}
+              className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
+            >
+              {isConfirming ? "Confirming..." : "Confirm"}
+            </button>
+          )}
+          <button
+            type="button"
+            onClick={handleBreakDown}
+            disabled={isBreakingDown || hasSubtasks}
+            className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
+          >
+            {isBreakingDown ? "Breaking down..." : "Break down"}
+          </button>
+        </div>
       </div>
 
-      {subtasks !== undefined && subtasks.length > 0 && (
+      {hasSubtasks && (
         <ul className="flex flex-col gap-1 pl-4 text-sm">
-          {subtasks.map((subtask) => {
-            const minutes = subtask.userEditedMinutes ?? subtask.estimatedMinutes;
-            return (
-              <li key={subtask._id} className="flex items-center gap-2">
-                <span className="flex-1">{subtask.title}</span>
-                {editingId === subtask._id ? (
-                  <input
-                    type="number"
-                    autoFocus
-                    className="border rounded px-1 w-16"
-                    value={editValue}
-                    onChange={(e) => setEditValue(e.target.value)}
-                    onBlur={() => commitEdit(subtask._id)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") commitEdit(subtask._id);
-                    }}
-                  />
-                ) : (
-                  <button
-                    type="button"
-                    className="underline decoration-dotted"
-                    onClick={() => startEditing(subtask._id, minutes)}
-                  >
-                    {minutes} min
-                  </button>
-                )}
-                <span className="text-gray-500">{subtask.difficulty}</span>
-              </li>
-            );
-          })}
+          {subtasks.map((subtask) => (
+            <SubtaskRow key={subtask._id} subtask={subtask} />
+          ))}
         </ul>
       )}
     </li>
@@ -123,6 +199,8 @@ export default function TodayPage() {
   const [commitmentTitle, setCommitmentTitle] = useState("");
   const [startTime, setStartTime] = useState("");
   const [endTime, setEndTime] = useState("");
+
+  const schedule = useQuery(api.schedule.getScheduleForToday, { date: today });
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
@@ -147,7 +225,16 @@ export default function TodayPage() {
 
   return (
     <main className="mx-auto max-w-xl p-6 flex flex-col gap-8">
-      <h1 className="text-xl font-semibold">Today — {today}</h1>
+      <div className="flex items-center justify-between">
+        <h1 className="text-xl font-semibold">Today — {today}</h1>
+        <UserButton />
+      </div>
+
+      {schedule != null && (
+        <div className="border rounded px-3 py-2 text-sm">
+          If you start now, you can finish by {formatTime(schedule)}.
+        </div>
+      )}
 
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">Tasks</h2>
