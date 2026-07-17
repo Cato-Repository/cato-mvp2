@@ -1,7 +1,8 @@
 "use client";
 
-import { useMutation, useQuery } from "convex/react";
+import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
 
 function getTodayDateString() {
@@ -21,6 +22,91 @@ function formatTime(timestamp: number) {
     hour: "2-digit",
     minute: "2-digit",
   });
+}
+
+function TaskItem({ task }: { task: { _id: Id<"tasks">; title: string } }) {
+  const subtasks = useQuery(api.subtasks.getSubtasksForTask, {
+    taskId: task._id,
+  });
+  const generateBreakdown = useAction(api.breakdown.generateBreakdown);
+  const updateEstimate = useMutation(api.subtasks.updateSubtaskEstimate);
+
+  const [isBreakingDown, setIsBreakingDown] = useState(false);
+  const [editingId, setEditingId] = useState<Id<"subtasks"> | null>(null);
+  const [editValue, setEditValue] = useState("");
+
+  async function handleBreakDown() {
+    setIsBreakingDown(true);
+    try {
+      await generateBreakdown({ taskId: task._id });
+    } finally {
+      setIsBreakingDown(false);
+    }
+  }
+
+  function startEditing(subtaskId: Id<"subtasks">, currentMinutes: number) {
+    setEditingId(subtaskId);
+    setEditValue(String(currentMinutes));
+  }
+
+  async function commitEdit(subtaskId: Id<"subtasks">) {
+    const minutes = Number(editValue);
+    if (!Number.isNaN(minutes) && minutes > 0) {
+      await updateEstimate({ subtaskId, minutes });
+    }
+    setEditingId(null);
+  }
+
+  return (
+    <li className="border rounded px-2 py-1 flex flex-col gap-2">
+      <div className="flex items-center justify-between gap-2">
+        <span>{task.title}</span>
+        <button
+          type="button"
+          onClick={handleBreakDown}
+          disabled={isBreakingDown}
+          className="border rounded px-2 py-0.5 text-sm disabled:opacity-50"
+        >
+          {isBreakingDown ? "Breaking down..." : "Break down"}
+        </button>
+      </div>
+
+      {subtasks !== undefined && subtasks.length > 0 && (
+        <ul className="flex flex-col gap-1 pl-4 text-sm">
+          {subtasks.map((subtask) => {
+            const minutes = subtask.userEditedMinutes ?? subtask.estimatedMinutes;
+            return (
+              <li key={subtask._id} className="flex items-center gap-2">
+                <span className="flex-1">{subtask.title}</span>
+                {editingId === subtask._id ? (
+                  <input
+                    type="number"
+                    autoFocus
+                    className="border rounded px-1 w-16"
+                    value={editValue}
+                    onChange={(e) => setEditValue(e.target.value)}
+                    onBlur={() => commitEdit(subtask._id)}
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") commitEdit(subtask._id);
+                    }}
+                  />
+                ) : (
+                  <button
+                    type="button"
+                    className="underline decoration-dotted"
+                    onClick={() => startEditing(subtask._id, minutes)}
+                  >
+                    {minutes} min
+                  </button>
+                )}
+                <span className="text-gray-500">{subtask.difficulty}</span>
+              </li>
+            );
+          })}
+        </ul>
+      )}
+    </li>
+  );
 }
 
 export default function TodayPage() {
@@ -78,9 +164,7 @@ export default function TodayPage() {
         </form>
         <ul className="flex flex-col gap-1">
           {tasks?.map((task) => (
-            <li key={task._id} className="border rounded px-2 py-1">
-              {task.title}
-            </li>
+            <TaskItem key={task._id} task={task} />
           ))}
           {tasks?.length === 0 && (
             <li className="text-sm text-gray-500">No tasks yet.</li>
