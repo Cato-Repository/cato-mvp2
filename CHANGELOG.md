@@ -5,6 +5,18 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.4.0] - 2026-07-17
+
+### Added
+- `confirmed` field on `subtasks` (optional, for schema compatibility with pre-existing rows; new rows always set it explicitly).
+- `confirmSubtasks` mutation and a "Confirm" button per task; confirmed subtasks show a checkmark.
+- `updateSubtask` mutation and an inline "Edit" form per subtask (title, difficulty, minutes), replacing the old minutes-only click-to-edit.
+- `getScheduleForToday` query: deterministically fits confirmed, incomplete subtask work into today's free gaps between timetable commitments, returning a "finish by" timestamp. Shown as a banner on `/today`.
+- Clerk's `<UserButton />` on `/today` for sign-out/account access.
+
+### Changed
+- `generateBreakdown` now rejects tasks that already have subtasks (server-side, backing the disabled "Break down" button) instead of allowing duplicate breakdowns.
+
 ## [0.3.0] - 2026-07-17
 
 ### Added
