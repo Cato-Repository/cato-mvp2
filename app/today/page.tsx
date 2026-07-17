@@ -5,6 +5,7 @@ import { UserButton } from "@clerk/nextjs";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
+import { ActiveSessionPanel } from "@/app/today/ActiveSessionPanel";
 
 function getTodayDateString() {
   const now = new Date();
@@ -35,9 +36,19 @@ type Subtask = {
   confirmed?: boolean;
 };
 
-function SubtaskRow({ subtask }: { subtask: Subtask }) {
+function SubtaskRow({
+  subtask,
+  sessionInProgress,
+  onStart,
+}: {
+  subtask: Subtask;
+  sessionInProgress: boolean;
+  onStart: (sessionId: Id<"sessions">, subtaskTitle: string) => void;
+}) {
   const updateSubtask = useMutation(api.subtasks.updateSubtask);
+  const startSession = useMutation(api.sessions.startSession);
   const [isEditing, setIsEditing] = useState(false);
+  const [isStarting, setIsStarting] = useState(false);
   const [title, setTitle] = useState(subtask.title);
   const [difficulty, setDifficulty] = useState(subtask.difficulty);
   const [minutes, setMinutes] = useState(
@@ -63,6 +74,16 @@ function SubtaskRow({ subtask }: { subtask: Subtask }) {
       minutes: parsedMinutes,
     });
     setIsEditing(false);
+  }
+
+  async function handleStart() {
+    setIsStarting(true);
+    try {
+      const sessionId = await startSession({ subtaskId: subtask._id });
+      onStart(sessionId, subtask.title);
+    } finally {
+      setIsStarting(false);
+    }
   }
 
   if (isEditing) {
@@ -113,11 +134,29 @@ function SubtaskRow({ subtask }: { subtask: Subtask }) {
       <button type="button" className="underline" onClick={startEditing}>
         Edit
       </button>
+      {subtask.confirmed && (
+        <button
+          type="button"
+          onClick={handleStart}
+          disabled={sessionInProgress || isStarting}
+          className="border rounded px-2 py-0.5 disabled:opacity-50"
+        >
+          {isStarting ? "Starting…" : "Start"}
+        </button>
+      )}
     </li>
   );
 }
 
-function TaskItem({ task }: { task: { _id: Id<"tasks">; title: string } }) {
+function TaskItem({
+  task,
+  sessionInProgress,
+  onStartSession,
+}: {
+  task: { _id: Id<"tasks">; title: string };
+  sessionInProgress: boolean;
+  onStartSession: (sessionId: Id<"sessions">, subtaskTitle: string) => void;
+}) {
   const subtasks = useQuery(api.subtasks.getSubtasksForTask, {
     taskId: task._id,
   });
@@ -177,7 +216,12 @@ function TaskItem({ task }: { task: { _id: Id<"tasks">; title: string } }) {
       {hasSubtasks && (
         <ul className="flex flex-col gap-1 pl-4 text-sm">
           {subtasks.map((subtask) => (
-            <SubtaskRow key={subtask._id} subtask={subtask} />
+            <SubtaskRow
+              key={subtask._id}
+              subtask={subtask}
+              sessionInProgress={sessionInProgress}
+              onStart={onStartSession}
+            />
           ))}
         </ul>
       )}
@@ -202,6 +246,11 @@ export default function TodayPage() {
   const [commitmentError, setCommitmentError] = useState<string | null>(null);
 
   const schedule = useQuery(api.schedule.getScheduleForToday, { date: today });
+
+  const [activeSession, setActiveSession] = useState<{
+    sessionId: Id<"sessions">;
+    subtaskTitle: string;
+  } | null>(null);
 
   async function handleAddTask(e: React.FormEvent) {
     e.preventDefault();
@@ -252,6 +301,14 @@ export default function TodayPage() {
         </div>
       )}
 
+      {activeSession && (
+        <ActiveSessionPanel
+          sessionId={activeSession.sessionId}
+          subtaskTitle={activeSession.subtaskTitle}
+          onEnded={() => setActiveSession(null)}
+        />
+      )}
+
       <section className="flex flex-col gap-3">
         <h2 className="font-medium">Tasks</h2>
         <form onSubmit={handleAddTask} className="flex gap-2">
@@ -267,7 +324,14 @@ export default function TodayPage() {
         </form>
         <ul className="flex flex-col gap-1">
           {tasks?.map((task) => (
-            <TaskItem key={task._id} task={task} />
+            <TaskItem
+              key={task._id}
+              task={task}
+              sessionInProgress={activeSession !== null}
+              onStartSession={(sessionId, subtaskTitle) =>
+                setActiveSession({ sessionId, subtaskTitle })
+              }
+            />
           ))}
           {tasks?.length === 0 && (
             <li className="text-sm text-gray-500">No tasks yet.</li>
