@@ -15,6 +15,7 @@ import {
   type ScreenActivityState,
 } from "@/lib/screenDetection";
 import { createDriftTracker } from "@/lib/driftTimer";
+import { ensureNotificationPermission, notifyAfk } from "@/lib/notifications";
 
 const WEBCAM_AWAY_THRESHOLD_MS = 20_000;
 const SCREEN_IDLE_THRESHOLD_MS = 45_000;
@@ -51,6 +52,7 @@ export function ActiveSessionPanel({
   const [webcamStatus, setWebcamStatus] = useState<WebcamStatus>("pending");
   const [screenStatus, setScreenStatus] = useState<ScreenStatus>("not-shared");
   const [toast, setToast] = useState<string | null>(null);
+  const [afkWarning, setAfkWarning] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
   const [isEnding, setIsEnding] = useState(false);
 
@@ -64,14 +66,30 @@ export function ActiveSessionPanel({
   const toastTimeoutRef = useRef<number | null>(null);
 
   const webcamDriftRef = useRef(
-    createDriftTracker(WEBCAM_AWAY_THRESHOLD_MS, (startTime, durationSeconds) => {
-      logDriftEvent({ sessionId, type: "webcam_away", startTime, durationSeconds });
-    })
+    createDriftTracker(
+      WEBCAM_AWAY_THRESHOLD_MS,
+      (startTime, durationSeconds) => {
+        logDriftEvent({ sessionId, type: "webcam_away", startTime, durationSeconds });
+      },
+      () => {
+        const message = "You've been away from the camera — still there?";
+        setAfkWarning(message);
+        notifyAfk(message);
+      }
+    )
   );
   const screenDriftRef = useRef(
-    createDriftTracker(SCREEN_IDLE_THRESHOLD_MS, (startTime, durationSeconds) => {
-      logDriftEvent({ sessionId, type: "screen_idle", startTime, durationSeconds });
-    })
+    createDriftTracker(
+      SCREEN_IDLE_THRESHOLD_MS,
+      (startTime, durationSeconds) => {
+        logDriftEvent({ sessionId, type: "screen_idle", startTime, durationSeconds });
+      },
+      () => {
+        const message = "No screen activity for a while — still working?";
+        setAfkWarning(message);
+        notifyAfk(message);
+      }
+    )
   );
   const focusRef = useRef<{ focusedSince: number | null; loggedThroughMs: number }>({
     focusedSince: null,
@@ -109,6 +127,8 @@ export function ActiveSessionPanel({
       return;
     }
 
+    setAfkWarning(null);
+
     if (focusRef.current.focusedSince === null) {
       focusRef.current.focusedSince = nowMs;
       focusRef.current.loggedThroughMs = 0;
@@ -131,6 +151,8 @@ export function ActiveSessionPanel({
   // every pause/resume.
   useEffect(() => {
     let cancelled = false;
+
+    void ensureNotificationPermission();
 
     startWebcamPresenceDetection((state) => {
       if (statusRef.current !== "active") return;
@@ -233,6 +255,12 @@ export function ActiveSessionPanel({
           {screenStatus === "not-shared" ? "not shared" : screenStatus}
         </span>
       </div>
+
+      {afkWarning && (
+        <div className="border border-red-600 rounded px-2 py-1 text-sm w-fit text-red-600">
+          {afkWarning}
+        </div>
+      )}
 
       {toast && (
         <div className="border rounded px-2 py-1 text-sm w-fit">{toast}</div>
