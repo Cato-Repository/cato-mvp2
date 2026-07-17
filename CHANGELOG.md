@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-07-17
+
+### Added
+- LLM-powered task breakdown (Phase 2), using Google Vertex AI (Gemini 2.5 Flash).
+- `lib/llm/decompose-task.ts`: isolates all Vertex-specific code behind a single `decomposeTask(title)` function, so the provider can be swapped later without touching callers.
+- `convex/breakdown.ts`: `generateBreakdown` action (Node runtime) that looks up a task, calls `decomposeTask`, and bulk-inserts the result into `subtasks`.
+- `convex/subtasks.ts`: `getSubtasksForTask` query and `updateSubtaskEstimate` mutation (writes to `userEditedMinutes`).
+- `/today` page: a "Break down" button per task, with a loading state, a reactive subtask list (title, estimated minutes, difficulty), and click-to-edit estimated minutes.
+
 ## [0.2.0] - 2026-07-17
 
 ### Added
