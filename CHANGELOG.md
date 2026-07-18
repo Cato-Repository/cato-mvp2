@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.7.0] - 2026-07-17
+
+### Added
+- Delete and mark-complete for subtasks (delete behind an AlertDialog confirmation; completed subtasks strike through and drop out of the finish-by projection).
+- Periodic in-app feedback prompt (5-star rating + required comment) every 5 completed sessions, tracked via denormalized counters on the user document.
+- One-time, 3-step onboarding tour for new users, hand-rolled with Radix Popover — no new tour dependency.
+- Clerk sign-in title overridden via `localization` prop ("Sign in to Cato" instead of the Clerk application's configured name).
+
+### Removed
+- Timetable feature entirely (schema table, backend, UI). The finish-by schedule projection no longer works around fixed commitments — it's just now + total confirmed/incomplete minutes.
+
+### Fixed
+- `getScheduleForToday` no longer reads the wall clock inside the query (a real bug per Convex's own guidelines — query results don't invalidate just because time passes). The client now owns and refreshes "now".
+
 ## [0.6.0] - 2026-07-17
 
 ### Added
