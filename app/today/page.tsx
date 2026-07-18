@@ -17,7 +17,6 @@ import { FeedbackPrompt } from "@/app/today/FeedbackPrompt";
 import {
   OnboardingProvider,
   OnboardingReplayButton,
-  TourStep,
 } from "@/app/today/OnboardingTour";
 
 // How often the "now" used for the finish-by projection refreshes. Convex
@@ -72,13 +71,7 @@ export default function TodayPage() {
     <OnboardingProvider>
       <main className="mx-auto flex max-w-3xl flex-col gap-6 p-6">
         <div className="flex items-center justify-between">
-          <TourStep
-            step={3}
-            title="Start focusing"
-            description="Once a sub-task is confirmed, hit Start to begin a tracked session — you'll see live progress and a finish-by projection right here."
-          >
-            <h1 className="text-xl font-semibold">Today — {today}</h1>
-          </TourStep>
+          <h1 className="text-xl font-semibold">Today — {today}</h1>
           <div className="flex items-center gap-1">
             <OnboardingReplayButton />
             <UserButton />
@@ -108,29 +101,17 @@ export default function TodayPage() {
 
         <Card>
           <CardHeader>
-            <TourStep
-              step={2}
-              title="Break it down"
-              description="Click 'Break down' on any task to get AI-generated sub-tasks with time estimates, then 'Confirm' to lock them in."
-            >
-              <CardTitle>Tasks</CardTitle>
-            </TourStep>
+            <CardTitle>Tasks</CardTitle>
             <form onSubmit={handleAddTask} className="flex gap-2 pt-2">
               <Label htmlFor="task-title" className="sr-only">
                 Task title
               </Label>
-              <TourStep
-                step={1}
-                title="Add your tasks"
-                description="Type a task title and hit + to add it to today's list."
-              >
-                <Input
-                  id="task-title"
-                  placeholder="Task title"
-                  value={taskTitle}
-                  onChange={(e) => setTaskTitle(e.target.value)}
-                />
-              </TourStep>
+              <Input
+                id="task-title"
+                placeholder="Task title"
+                value={taskTitle}
+                onChange={(e) => setTaskTitle(e.target.value)}
+              />
               <Button type="submit" size="icon" aria-label="Add task">
                 <Plus className="h-4 w-4" />
               </Button>
