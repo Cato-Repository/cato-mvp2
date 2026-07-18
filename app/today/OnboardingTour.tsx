@@ -5,11 +5,11 @@ import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import {
   ArrowDown,
-  CheckCheck,
+  ArrowUp,
   Clock,
   HelpCircle,
+  Pause,
   Pencil,
-  Plus,
   Sparkles,
   Trash2,
 } from "lucide-react";
@@ -27,7 +27,7 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
-type Highlightable = "add" | "edit" | "delete" | "breakdown" | "confirm";
+type Highlightable = "add" | "edit" | "delete" | "breakdown" | "letsBegin";
 
 type OnboardingContextValue = {
   restart: () => void;
@@ -54,8 +54,9 @@ export function OnboardingReplayButton() {
           size="icon-lg"
           onClick={restart}
           aria-label="Show tutorial"
+          className="size-11"
         >
-          <HelpCircle className="h-5 w-5" />
+          <HelpCircle className="size-6" />
         </Button>
       </TooltipTrigger>
       <TooltipContent>Tutorial</TooltipContent>
@@ -87,25 +88,69 @@ function Highlight({
   );
 }
 
-// A static, non-interactive stand-in for a real task card, used purely to
-// illustrate the UI in the tutorial. Nothing here is wired to Convex.
+// Same width/color scheme as the real subtask badges (SubtaskRow.tsx) so
+// the mock reads as authentic rather than a generic placeholder.
+const MOCK_BADGE_WIDTH = "w-16";
+function mockDifficultyClass(difficulty: "easy" | "medium" | "hard") {
+  if (difficulty === "easy") return "bg-green-600 text-white hover:bg-green-600";
+  if (difficulty === "hard") return "bg-red-600 text-white hover:bg-red-600";
+  return "bg-amber-500 text-white hover:bg-amber-500";
+}
+
+// Static, non-interactive stand-ins used purely to illustrate the UI in the
+// tutorial. Nothing here is wired to Convex.
+
+function MockWelcomeCard() {
+  return (
+    <Card className="pointer-events-none mx-auto w-full max-w-xs select-none">
+      <CardContent className="flex flex-col gap-3 py-6 text-center">
+        <div>
+          <p className="text-lg font-semibold">Hey there, you!</p>
+          <p className="text-muted-foreground text-sm">
+            What would you like to get started with?
+          </p>
+        </div>
+        <div className="flex gap-2">
+          <div className="border-input text-muted-foreground flex h-9 flex-1 items-center rounded-md border px-3 text-left text-sm">
+            E.g. Write a 500 word essay on butterflies
+          </div>
+          <Highlight active>
+            <Button
+              type="button"
+              size="icon"
+              className="bg-primary rounded-full"
+              aria-hidden
+            >
+              <ArrowUp className="h-4 w-4" />
+            </Button>
+          </Highlight>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
 function MockTaskCard({ highlights }: { highlights: Highlightable[] }) {
   const has = (id: Highlightable) => highlights.includes(id);
   return (
     <Card className="pointer-events-none select-none">
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-base font-normal">
-          Finish math homework
-        </CardTitle>
         <div className="flex items-center gap-2">
-          <Highlight active={has("confirm")}>
+          <Badge variant="secondary" className="h-6 w-6 justify-center rounded-full p-0">
+            1
+          </Badge>
+          <CardTitle className="text-base font-normal">
+            Write a 500 word essay on butterflies
+          </CardTitle>
+        </div>
+        <div className="flex items-center gap-2">
+          <Highlight active={has("letsBegin")}>
             <Button
               type="button"
               size="sm"
               className="bg-green-600 text-white hover:bg-green-700"
             >
-              <CheckCheck className="h-4 w-4" />
-              Confirm
+              Let&apos;s Begin!
             </Button>
           </Highlight>
           <Highlight active={has("breakdown")}>
@@ -118,9 +163,13 @@ function MockTaskCard({ highlights }: { highlights: Highlightable[] }) {
       </CardHeader>
       <CardContent className="flex flex-col divide-y text-sm">
         <div className="flex items-center gap-2 py-1.5">
-          <span className="flex-1">Review chapter 3</span>
-          <Badge variant="outline">20 min</Badge>
-          <Badge variant="secondary">easy</Badge>
+          <span className="flex-1">Summarise Lecture 1 video</span>
+          <Badge variant="outline" className={MOCK_BADGE_WIDTH}>
+            15 min
+          </Badge>
+          <Badge className={cn(MOCK_BADGE_WIDTH, mockDifficultyClass("medium"))}>
+            medium
+          </Badge>
           <Highlight active={has("edit")}>
             <span className="text-muted-foreground inline-flex h-8 w-8 items-center justify-center">
               <Pencil className="h-4 w-4" />
@@ -137,18 +186,52 @@ function MockTaskCard({ highlights }: { highlights: Highlightable[] }) {
   );
 }
 
-function MockAddTaskRow() {
+function MockLockInDialog() {
   return (
-    <div className="flex gap-2">
-      <div className="border-input text-muted-foreground flex h-9 flex-1 items-center rounded-md border px-3 text-sm">
-        Finish math homework
-      </div>
-      <Highlight active>
-        <Button type="button" size="icon" aria-hidden>
-          <Plus className="h-4 w-4" />
-        </Button>
-      </Highlight>
-    </div>
+    <Card className="pointer-events-none select-none">
+      <CardContent className="flex flex-col items-center gap-4 py-6 text-center">
+        <p className="font-semibold">
+          You can finish by <span className="text-primary">3:45 PM</span> if you
+          start now and focus!
+        </p>
+        <p className="text-muted-foreground text-sm">Shall we lock in now?</p>
+        <div className="flex gap-2">
+          <Highlight active>
+            <Button type="button" size="sm">
+              I&apos;m locking in
+            </Button>
+          </Highlight>
+          <Button type="button" variant="secondary" size="sm">
+            I&apos;ll start in 10 mins
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+function MockSessionCard() {
+  return (
+    <Card className="border-primary/30 pointer-events-none select-none">
+      <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
+        <CardTitle className="text-base font-normal">
+          Working on: Summarise Lecture 1 video
+        </CardTitle>
+        <span className="font-mono text-sm">12:34</span>
+      </CardHeader>
+      <CardContent className="flex items-center gap-2">
+        <Highlight active>
+          <Button type="button" variant="outline" size="sm">
+            <Pause className="h-4 w-4" />
+            Pause
+          </Button>
+        </Highlight>
+        <span className="text-muted-foreground text-xs">
+          If Cato can&apos;t tell you&apos;re still there, it&apos;ll gently check
+          in — no penalty for stepping away.
+        </span>
+      </CardContent>
+    </Card>
   );
 }
 
@@ -167,9 +250,10 @@ function MockScheduleBanner() {
 
 const STEPS: { title: string; description: string; content: ReactNode }[] = [
   {
-    title: "Add your tasks",
-    description: "Type a task title and hit the + button to add it to today's list.",
-    content: <MockAddTaskRow />,
+    title: "Add your first task",
+    description:
+      "When you're just starting out, type a task here and hit the arrow to add it to today's list.",
+    content: <MockWelcomeCard />,
   },
   {
     title: "Edit, delete, or break it down",
@@ -178,10 +262,22 @@ const STEPS: { title: string; description: string; content: ReactNode }[] = [
     content: <MockTaskCard highlights={["edit", "delete", "breakdown"]} />,
   },
   {
-    title: "Confirm to lock it in",
+    title: "Let's Begin!",
     description:
-      "Once you're happy with the sub-tasks, hit Confirm — this locks the breakdown in and unlocks the Start button so you can begin a tracked focus session.",
-    content: <MockTaskCard highlights={["confirm"]} />,
+      "Once you're happy with the sub-tasks, hit Let's Begin! — this locks the breakdown in and shows you a finish-by projection.",
+    content: <MockTaskCard highlights={["letsBegin"]} />,
+  },
+  {
+    title: "Lock in, or take 10",
+    description:
+      "Right after confirming, Cato shows when you could finish if you start now. Not ready yet? \"I'll start in 10 mins\" adds a short pause badge and countdown so nothing's forgotten.",
+    content: <MockLockInDialog />,
+  },
+  {
+    title: "Focus, with a safety net",
+    description:
+      "While you work, pause anytime with no penalty. Cato also watches for sustained inactivity via webcam/screen and will gently check in if it can't tell you're still there.",
+    content: <MockSessionCard />,
   },
   {
     title: "See your finish time",
