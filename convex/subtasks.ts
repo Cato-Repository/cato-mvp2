@@ -94,6 +94,55 @@ export const confirmSubtasks = mutation({
   },
 });
 
+export const toggleSubtaskCompleted = mutation({
+  args: {
+    subtaskId: v.id("subtasks"),
+    completed: v.boolean(),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const subtask = await ctx.db.get("subtasks", args.subtaskId);
+    if (subtask === null) {
+      throw new Error("Subtask not found");
+    }
+
+    const task = await ctx.db.get("tasks", subtask.taskId);
+    if (task === null || task.userId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
+    await ctx.db.patch("subtasks", args.subtaskId, { completed: args.completed });
+  },
+});
+
+export const deleteSubtask = mutation({
+  args: {
+    subtaskId: v.id("subtasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const subtask = await ctx.db.get("subtasks", args.subtaskId);
+    if (subtask === null) {
+      throw new Error("Subtask not found");
+    }
+
+    const task = await ctx.db.get("tasks", subtask.taskId);
+    if (task === null || task.userId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
+    await ctx.db.delete("subtasks", args.subtaskId);
+  },
+});
+
 export const hasSubtasksInternal = internalQuery({
   args: {
     taskId: v.id("tasks"),

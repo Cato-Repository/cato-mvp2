@@ -4,9 +4,10 @@ import { useMutation } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
-import { CheckCircle2, Pencil, Play } from "lucide-react";
+import { CheckCircle2, Pencil, Play, Trash2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
@@ -24,7 +25,19 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { cn } from "@/lib/utils";
 
 export type Subtask = {
   _id: Id<"subtasks">;
@@ -58,6 +71,8 @@ export function SubtaskRow({
   ) => void;
 }) {
   const updateSubtask = useMutation(api.subtasks.updateSubtask);
+  const toggleCompleted = useMutation(api.subtasks.toggleSubtaskCompleted);
+  const deleteSubtask = useMutation(api.subtasks.deleteSubtask);
   const startSession = useMutation(api.sessions.startSession);
   const [isEditing, setIsEditing] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
@@ -106,10 +121,24 @@ export function SubtaskRow({
 
   return (
     <div className="flex items-center gap-2 py-1.5 text-sm">
+      <Checkbox
+        checked={subtask.completed}
+        onCheckedChange={(checked) =>
+          toggleCompleted({ subtaskId: subtask._id, completed: checked === true })
+        }
+        aria-label="Mark subtask done"
+      />
       {subtask.confirmed && (
         <CheckCircle2 className="text-primary h-4 w-4 shrink-0" aria-label="Confirmed" />
       )}
-      <span className="flex-1">{subtask.title}</span>
+      <span
+        className={cn(
+          "flex-1",
+          subtask.completed && "text-muted-foreground line-through"
+        )}
+      >
+        {subtask.title}
+      </span>
       <Badge variant="outline">{minutesDisplay} min</Badge>
       <Badge variant={difficultyBadgeVariant(subtask.difficulty)}>
         {subtask.difficulty}
@@ -177,6 +206,36 @@ export function SubtaskRow({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog>
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <AlertDialogTrigger asChild>
+              <Button type="button" variant="ghost" size="icon">
+                <Trash2 className="h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+          </TooltipTrigger>
+          <TooltipContent>Delete subtask</TooltipContent>
+        </Tooltip>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this subtask?</AlertDialogTitle>
+            <AlertDialogDescription>
+              &ldquo;{subtask.title}&rdquo; will be permanently removed. This
+              can&apos;t be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={() => deleteSubtask({ subtaskId: subtask._id })}
+            >
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {subtask.confirmed && (
         <Button
