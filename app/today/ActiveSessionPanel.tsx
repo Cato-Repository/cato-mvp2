@@ -6,7 +6,6 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-  AlertTriangle,
   Camera,
   CameraOff,
   Loader2,
@@ -20,7 +19,14 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { Progress } from "@/components/ui/progress";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -287,15 +293,34 @@ export function ActiveSessionPanel({
           </Badge>
         </div>
 
-        {afkWarning && (
-          <Alert variant="destructive">
-            <AlertTriangle />
-            <AlertTitle>{afkWarning}</AlertTitle>
-            <AlertDescription>
-              This will be logged as a drift event once you return.
-            </AlertDescription>
-          </Alert>
-        )}
+        <Dialog open={afkWarning !== null} onOpenChange={(open) => !open && setAfkWarning(null)}>
+          <DialogContent>
+            <DialogHeader className="text-center sm:text-center">
+              <DialogTitle>Are you still there?</DialogTitle>
+              <DialogDescription>
+                Let&apos;s continue – One small action is enough to get moving!
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter className="sm:justify-center">
+              <Button
+                type="button"
+                onClick={() => setAfkWarning(null)}
+              >
+                I&apos;m still here!
+              </Button>
+              <Button
+                type="button"
+                variant="secondary"
+                onClick={() => {
+                  setAfkWarning(null);
+                  void handlePause();
+                }}
+              >
+                Let me rest for 10 mins
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <div className="flex items-center gap-2">
           {session.status === "active" && (
