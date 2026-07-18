@@ -30,7 +30,12 @@ export default function RootLayout({
   return (
     <ClerkProvider
       localization={{
-        signIn: { start: { title: "Sign in to Cato" } },
+        signIn: {
+          start: {
+            title: "Sign in to Cato",
+            titleCombined: "Sign in to Cato",
+          },
+        },
       }}
     >
       <html

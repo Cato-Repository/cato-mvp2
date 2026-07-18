@@ -108,8 +108,8 @@ export default function TodayPage() {
 
   return (
     <OnboardingProvider>
-      <main className="mx-auto flex min-h-screen max-w-3xl flex-col gap-6 p-6">
-        <div className="flex items-center justify-between">
+      <div className="flex min-h-screen flex-col">
+        <div className="mx-auto flex w-full max-w-3xl items-center justify-between p-6">
           {!hasNoTasks && (
             <h1 className="text-xl font-semibold">{formatDateHeading(today)}</h1>
           )}
@@ -120,40 +120,40 @@ export default function TodayPage() {
         </div>
 
         {hasNoTasks ? (
-          <div className="flex flex-1 items-center justify-center">
-            <Card className="w-full max-w-2xl">
-              <CardContent className="flex flex-col gap-8 py-16 text-center">
+          <div className="flex flex-1 items-center justify-center p-6">
+            <Card className="w-full max-w-4xl">
+              <CardContent className="flex flex-col gap-10 py-24 text-center">
                 <div>
-                  <h2 className="text-3xl font-semibold">Hey there, {greetingName}!</h2>
-                  <p className="text-muted-foreground mt-2 text-base">
+                  <h2 className="text-4xl font-semibold">Hey there, {greetingName}!</h2>
+                  <p className="text-muted-foreground mt-3 text-lg">
                     What would you like to get started with?
                   </p>
                 </div>
-                <form onSubmit={handleAddTask} className="flex gap-2">
+                <form onSubmit={handleAddTask} className="mx-auto flex w-full max-w-2xl gap-3">
                   <Label htmlFor="task-title" className="sr-only">
                     Task title
                   </Label>
                   <Input
                     id="task-title"
                     placeholder={TASK_PLACEHOLDER}
-                    className="h-12 text-base"
+                    className="h-14 text-lg"
                     value={taskTitle}
                     onChange={(e) => setTaskTitle(e.target.value)}
                   />
                   <Button
                     type="submit"
                     size="icon"
-                    className="bg-primary size-12 rounded-full"
+                    className="bg-primary size-14 shrink-0 rounded-full"
                     aria-label="Add task"
                   >
-                    <ArrowUp className="size-5" />
+                    <ArrowUp className="size-6" />
                   </Button>
                 </form>
               </CardContent>
             </Card>
           </div>
         ) : (
-          <>
+          <main className="mx-auto flex w-full max-w-3xl flex-col gap-6 p-6">
             {activeSession ? (
               <ActiveSessionPanel
                 sessionId={activeSession.sessionId}
@@ -220,9 +220,9 @@ export default function TodayPage() {
                 ))}
               </CardContent>
             </Card>
-          </>
+          </main>
         )}
-      </main>
+      </div>
       <FeedbackPrompt />
 
       {delayProgressPercent !== null && (
