@@ -1,10 +1,9 @@
 import { auth } from "@clerk/nextjs/server";
 import { redirect } from "next/navigation";
+import { LandingPage } from "@/app/LandingPage";
 
-// proxy.ts already protects "/" (it's not in the public route matcher), so
-// a signed-out visitor is redirected to sign-in before this component ever
-// runs. redirect("/sign-in") below is defensive/documentation rather than
-// the path actually hit in practice — redirect("/today") is the real one.
+// "/" is public (see proxy.ts) so signed-out visitors can actually see the
+// landing page. Signed-in users skip it entirely and go straight to the app.
 export default async function Home() {
   const { userId } = await auth();
 
@@ -12,5 +11,5 @@ export default async function Home() {
     redirect("/today");
   }
 
-  redirect("/sign-in");
+  return <LandingPage />;
 }
