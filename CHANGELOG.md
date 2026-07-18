@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.10.0] - 2026-07-17
+
+### Added
+- Public landing page at "/" — hero + a 9-card feature grid covering everything currently built (AI breakdown, finish-by projection, focus sessions, webcam/screen detection, AFK check-ins, streaks/concentration score, task CRUD, onboarding tour). "/" is now an exact-match public route in `proxy.ts`; signed-in users still skip straight to `/today`.
+
 ## [0.9.3] - 2026-07-17
 
 ### Fixed
