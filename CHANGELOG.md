@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.2] - 2026-07-17
+
+### Removed
+- Eye-tracking (eyes-closed detection) from webcam presence detection — "away" is now based on face presence and head-pose tilt only.
+
+### Changed
+- Empty-state welcome card enlarged (more padding, bigger heading/input/button) — was reading as a small box lost in empty page space.
+- "Share screen" now has a persistent caption explaining what it's for.
+
 ## [0.9.1] - 2026-07-17
 
 ### Changed
