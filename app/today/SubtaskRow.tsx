@@ -49,12 +49,12 @@ export type Subtask = {
   confirmed?: boolean;
 };
 
-function difficultyBadgeVariant(
-  difficulty: string
-): "secondary" | "outline" | "destructive" {
-  if (difficulty === "easy") return "secondary";
-  if (difficulty === "hard") return "destructive";
-  return "outline";
+const BADGE_WIDTH = "w-16";
+
+function difficultyBadgeClass(difficulty: string) {
+  if (difficulty === "easy") return "bg-green-600 text-white hover:bg-green-600";
+  if (difficulty === "hard") return "bg-red-600 text-white hover:bg-red-600";
+  return "bg-amber-500 text-white hover:bg-amber-500";
 }
 
 export function SubtaskRow({
@@ -152,8 +152,10 @@ export function SubtaskRow({
       >
         {subtask.title}
       </span>
-      <Badge variant="outline">{minutesDisplay} min</Badge>
-      <Badge variant={difficultyBadgeVariant(subtask.difficulty)}>
+      <Badge variant="outline" className={BADGE_WIDTH}>
+        {minutesDisplay} min
+      </Badge>
+      <Badge className={cn(BADGE_WIDTH, difficultyBadgeClass(subtask.difficulty))}>
         {subtask.difficulty}
       </Badge>
 
