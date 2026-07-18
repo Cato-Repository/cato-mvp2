@@ -61,6 +61,9 @@ export function SubtaskRow({
   subtask,
   sessionInProgress,
   onStart,
+  selectable = false,
+  selected = false,
+  onToggleSelect,
 }: {
   subtask: Subtask;
   sessionInProgress: boolean;
@@ -69,6 +72,9 @@ export function SubtaskRow({
     subtaskTitle: string,
     estimatedMinutes: number
   ) => void;
+  selectable?: boolean;
+  selected?: boolean;
+  onToggleSelect?: () => void;
 }) {
   const updateSubtask = useMutation(api.subtasks.updateSubtask);
   const toggleCompleted = useMutation(api.subtasks.toggleSubtaskCompleted);
@@ -121,6 +127,13 @@ export function SubtaskRow({
 
   return (
     <div className="flex items-center gap-2 py-1.5 text-sm">
+      {selectable && (
+        <Checkbox
+          checked={selected}
+          onCheckedChange={() => onToggleSelect?.()}
+          aria-label="Select subtask"
+        />
+      )}
       <Checkbox
         checked={subtask.completed}
         onCheckedChange={(checked) =>
@@ -144,6 +157,8 @@ export function SubtaskRow({
         {subtask.difficulty}
       </Badge>
 
+      {!selectable && (
+      <>
       <Dialog open={isEditing} onOpenChange={setIsEditing}>
         <Tooltip>
           <TooltipTrigger asChild>
@@ -247,6 +262,8 @@ export function SubtaskRow({
           <Play className="h-4 w-4" />
           {isStarting ? "Starting…" : "Start"}
         </Button>
+      )}
+      </>
       )}
     </div>
   );
