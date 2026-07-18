@@ -336,15 +336,20 @@ export function ActiveSessionPanel({
             </Button>
           )}
           {screenStatus === "not-shared" && (
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={handleShareScreen}
-            >
-              <MonitorUp className="h-4 w-4" />
-              Share screen
-            </Button>
+            <div className="flex flex-col gap-1">
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                onClick={handleShareScreen}
+              >
+                <MonitorUp className="h-4 w-4" />
+                Share screen
+              </Button>
+              <span className="text-muted-foreground text-xs">
+                Optional — also flags if you go idle on screen, not just camera.
+              </span>
+            </div>
           )}
           <Button
             type="button"

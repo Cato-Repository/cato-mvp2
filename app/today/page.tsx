@@ -121,11 +121,11 @@ export default function TodayPage() {
 
         {hasNoTasks ? (
           <div className="flex flex-1 items-center justify-center">
-            <Card className="w-full max-w-md">
-              <CardContent className="flex flex-col gap-4 py-8 text-center">
+            <Card className="w-full max-w-2xl">
+              <CardContent className="flex flex-col gap-8 py-16 text-center">
                 <div>
-                  <h2 className="text-xl font-semibold">Hey there, {greetingName}!</h2>
-                  <p className="text-muted-foreground mt-1 text-sm">
+                  <h2 className="text-3xl font-semibold">Hey there, {greetingName}!</h2>
+                  <p className="text-muted-foreground mt-2 text-base">
                     What would you like to get started with?
                   </p>
                 </div>
@@ -136,16 +136,17 @@ export default function TodayPage() {
                   <Input
                     id="task-title"
                     placeholder={TASK_PLACEHOLDER}
+                    className="h-12 text-base"
                     value={taskTitle}
                     onChange={(e) => setTaskTitle(e.target.value)}
                   />
                   <Button
                     type="submit"
                     size="icon"
-                    className="bg-primary rounded-full"
+                    className="bg-primary size-12 rounded-full"
                     aria-label="Add task"
                   >
-                    <ArrowUp className="h-4 w-4" />
+                    <ArrowUp className="size-5" />
                   </Button>
                 </form>
               </CardContent>
