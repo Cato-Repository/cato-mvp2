@@ -5,6 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.3] - 2026-07-17
+
+### Fixed
+- Empty-state welcome card was still capped by the page's outer max-w-3xl wrapper, so it could never actually reach its own max-width. Restructured so the empty state breaks out of that constraint; card widened to max-w-4xl with larger padding/type/input/button.
+- Sign-in page still showed "Sign in to Cato-MVP2" in the single-step ("last used" method) screen state, which reads Clerk's `titleCombined` key rather than `title` — both are now overridden.
+
 ## [0.9.2] - 2026-07-17
 
 ### Removed
