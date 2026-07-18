@@ -5,6 +5,20 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.9.0] - 2026-07-17
+
+### Added
+- Centered empty-state welcome screen ("Hey there, {username}!") shown when a user has zero tasks, reverting to the normal layout once a task exists.
+- Task numbering (1, 2, 3...) on each task card.
+- Lock-in dialog after confirming a task, showing the deterministic finish-by time and offering "I'm locking in" or a 10-minute delay (shown as a per-task badge + a page-bottom countdown bar).
+- "Are you still there?" dialog replacing the inline AFK alert, with "I'm still here!" / "Let me rest for 10 mins" (reuses the existing pause mutation).
+
+### Changed
+- Difficulty badges are now solid green/amber/red, aligned to a fixed width alongside the minutes badge.
+- "Confirm" renamed to "Let's Begin!".
+- Date heading changed from "Today — YYYY-MM-DD" to "Weekday – D Month YYYY".
+- Task input placeholder changed to an example prompt.
+
 ## [0.8.2] - 2026-07-17
 
 ### Changed
