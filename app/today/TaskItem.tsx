@@ -4,8 +4,17 @@ import { useAction, useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import { useState } from "react";
-import { CheckCheck, CheckSquare, Loader2, Sparkles, Trash2, X } from "lucide-react";
+import {
+  CheckCheck,
+  CheckSquare,
+  Loader2,
+  Sparkles,
+  Timer,
+  Trash2,
+  X,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
@@ -19,20 +28,39 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "@/components/ui/dialog";
 import { SubtaskRow } from "@/app/today/SubtaskRow";
+import { formatTime } from "@/lib/formatTime";
+
+const DELAY_MS = 10 * 60 * 1000;
 
 export function TaskItem({
   task,
+  index,
   sessionInProgress,
   onStartSession,
+  schedule,
+  delay,
+  onStartDelay,
 }: {
   task: { _id: Id<"tasks">; title: string };
+  index: number;
   sessionInProgress: boolean;
   onStartSession: (
     sessionId: Id<"sessions">,
     subtaskTitle: string,
     estimatedMinutes: number
   ) => void;
+  schedule: number | null | undefined;
+  delay: { endsAt: number; now: number } | null;
+  onStartDelay: (taskId: Id<"tasks">, endsAt: number) => void;
 }) {
   const subtasks = useQuery(api.subtasks.getSubtasksForTask, {
     taskId: task._id,
@@ -47,6 +75,7 @@ export function TaskItem({
   const [isDeletingTask, setIsDeletingTask] = useState(false);
   const [isSelecting, setIsSelecting] = useState(false);
   const [selectedIds, setSelectedIds] = useState<Set<Id<"subtasks">>>(new Set());
+  const [showLockIn, setShowLockIn] = useState(false);
 
   const hasSubtasks = subtasks !== undefined && subtasks.length > 0;
   const allConfirmed = hasSubtasks && subtasks.every((s) => s.confirmed);
@@ -64,6 +93,7 @@ export function TaskItem({
     setIsConfirming(true);
     try {
       await confirmSubtasks({ taskId: task._id });
+      setShowLockIn(true);
     } finally {
       setIsConfirming(false);
     }
@@ -101,10 +131,30 @@ export function TaskItem({
     setIsSelecting(false);
   }
 
+  function handleDelayStart() {
+    onStartDelay(task._id, Date.now() + DELAY_MS);
+    setShowLockIn(false);
+  }
+
+  const delayMinutesLeft = delay
+    ? Math.max(0, Math.ceil((delay.endsAt - delay.now) / 60000))
+    : null;
+
   return (
     <Card>
       <CardHeader className="flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-base font-normal">{task.title}</CardTitle>
+        <div className="flex items-center gap-2">
+          <Badge variant="secondary" className="h-6 w-6 justify-center rounded-full p-0">
+            {index}
+          </Badge>
+          <CardTitle className="text-base font-normal">{task.title}</CardTitle>
+          {delayMinutesLeft !== null && (
+            <Badge variant="destructive">
+              <Timer className="h-3 w-3" />
+              {delayMinutesLeft} Min{delayMinutesLeft === 1 ? "" : "s"} Pause
+            </Badge>
+          )}
+        </div>
         <div className="flex items-center gap-2">
           {hasSubtasks && !allConfirmed && (
             <Button
@@ -119,7 +169,7 @@ export function TaskItem({
               ) : (
                 <CheckCheck className="h-4 w-4" />
               )}
-              {isConfirming ? "Confirming…" : "Confirm"}
+              {isConfirming ? "Confirming…" : "Let's Begin!"}
             </Button>
           )}
           <Button
@@ -225,6 +275,31 @@ export function TaskItem({
           ))}
         </CardContent>
       )}
+
+      <Dialog open={showLockIn} onOpenChange={setShowLockIn}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {schedule != null
+                ? `You can finish by ${formatTime(schedule)} if you start now and focus!`
+                : "Ready to focus?"}
+            </DialogTitle>
+            <DialogDescription>Shall we lock in now?</DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="sm:justify-center">
+            <Button
+              type="button"
+              className="bg-primary text-primary-foreground"
+              onClick={() => setShowLockIn(false)}
+            >
+              I&apos;m locking in
+            </Button>
+            <Button type="button" variant="secondary" onClick={handleDelayStart}>
+              I&apos;ll start in 10 mins
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
