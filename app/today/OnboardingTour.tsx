@@ -24,6 +24,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "@/components/ui/dialog";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 
 type Highlightable = "add" | "edit" | "delete" | "breakdown" | "confirm";
@@ -45,15 +46,20 @@ function useOnboardingContext() {
 export function OnboardingReplayButton() {
   const { restart } = useOnboardingContext();
   return (
-    <Button
-      type="button"
-      variant="ghost"
-      size="icon"
-      onClick={restart}
-      aria-label="Show tutorial"
-    >
-      <HelpCircle className="h-4 w-4" />
-    </Button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button
+          type="button"
+          variant="ghost"
+          size="icon-lg"
+          onClick={restart}
+          aria-label="Show tutorial"
+        >
+          <HelpCircle className="h-5 w-5" />
+        </Button>
+      </TooltipTrigger>
+      <TooltipContent>Tutorial</TooltipContent>
+    </Tooltip>
   );
 }
 
