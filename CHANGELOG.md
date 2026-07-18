@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.1] - 2026-07-17
+
+### Changed
+- Onboarding tour redesigned from small popovers anchored to live page elements into a single larger illustrated dialog with a self-contained mock task card and mock finish-by banner, ring+arrow highlights on the relevant control per step, and a Back button. Fixes a real gap where the old "Confirm" step anchored to a button that doesn't exist yet for brand-new users.
+
 ## [0.8.0] - 2026-07-17
 
 ### Added
