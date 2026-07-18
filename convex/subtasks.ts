@@ -143,6 +143,30 @@ export const deleteSubtask = mutation({
   },
 });
 
+export const deleteSubtasks = mutation({
+  args: {
+    subtaskIds: v.array(v.id("subtasks")),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      throw new Error("Not authenticated");
+    }
+
+    for (const subtaskId of args.subtaskIds) {
+      const subtask = await ctx.db.get("subtasks", subtaskId);
+      if (subtask === null) continue;
+
+      const task = await ctx.db.get("tasks", subtask.taskId);
+      if (task === null || task.userId !== user._id) {
+        throw new Error("Not authorized");
+      }
+
+      await ctx.db.delete("subtasks", subtaskId);
+    }
+  },
+});
+
 export const hasSubtasksInternal = internalQuery({
   args: {
     taskId: v.id("tasks"),

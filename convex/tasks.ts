@@ -41,6 +41,34 @@ export const getTasksForToday = query({
   },
 });
 
+export const deleteTask = mutation({
+  args: {
+    taskId: v.id("tasks"),
+  },
+  handler: async (ctx, args) => {
+    const user = await getCurrentUser(ctx);
+    if (user === null) {
+      throw new Error("Not authenticated");
+    }
+
+    const task = await ctx.db.get("tasks", args.taskId);
+    if (task === null || task.userId !== user._id) {
+      throw new Error("Not authorized");
+    }
+
+    const subtasks = await ctx.db
+      .query("subtasks")
+      .withIndex("by_taskId", (q) => q.eq("taskId", args.taskId))
+      .collect();
+
+    for (const subtask of subtasks) {
+      await ctx.db.delete("subtasks", subtask._id);
+    }
+
+    await ctx.db.delete("tasks", args.taskId);
+  },
+});
+
 export const getTaskById = internalQuery({
   args: {
     taskId: v.id("tasks"),
