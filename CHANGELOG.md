@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.8.0] - 2026-07-17
+
+### Added
+- Bulk-select and delete for subtasks ("Select" toggle → checkboxes → "Delete N selected").
+- Delete a task entirely, cascading to all of its subtasks.
+- Onboarding tour replay button (question-mark icon in the header) — the tour can now be manually re-triggered anytime, not just shown once automatically.
+
+### Changed
+- "Confirm" button is now green, visually distinct from "Break down"'s neutral outline style.
+
 ## [0.7.0] - 2026-07-17
 
 ### Added
