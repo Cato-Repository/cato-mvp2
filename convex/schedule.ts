@@ -5,19 +5,13 @@ import { getCurrentUser } from "./users";
 export const getScheduleForToday = query({
   args: {
     date: v.string(),
+    now: v.number(),
   },
   handler: async (ctx, args) => {
     const user = await getCurrentUser(ctx);
     if (user === null) {
       return null;
     }
-
-    const commitments = await ctx.db
-      .query("timetableCommitments")
-      .withIndex("by_userId_and_date", (q) =>
-        q.eq("userId", user._id).eq("date", args.date)
-      )
-      .collect();
 
     const tasks = await ctx.db
       .query("tasks")
@@ -45,26 +39,6 @@ export const getScheduleForToday = query({
       return null;
     }
 
-    const now = Date.now();
-    let remainingMs = totalRemainingMinutes * 60 * 1000;
-    let cursor = now;
-
-    // Only commitments that haven't fully passed yet can block remaining work.
-    const busyBlocks = commitments
-      .filter((commitment) => commitment.endTime > now)
-      .sort((a, b) => a.startTime - b.startTime);
-
-    for (const block of busyBlocks) {
-      if (block.startTime > cursor) {
-        const gapMs = block.startTime - cursor;
-        if (gapMs >= remainingMs) {
-          return cursor + remainingMs;
-        }
-        remainingMs -= gapMs;
-      }
-      cursor = Math.max(cursor, block.endTime);
-    }
-
-    return cursor + remainingMs;
+    return args.now + totalRemainingMinutes * 60 * 1000;
   },
 });

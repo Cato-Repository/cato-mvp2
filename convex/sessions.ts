@@ -121,6 +121,10 @@ export const endSession = mutation({
       status: "completed",
       concentrationScore,
     });
+
+    await ctx.db.patch("users", user._id, {
+      completedSessionCount: (user.completedSessionCount ?? 0) + 1,
+    });
   },
 });
 

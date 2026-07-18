@@ -8,6 +8,9 @@ export default defineSchema({
     email: v.string(),
     plan: v.string(),
     createdAt: v.number(),
+    completedSessionCount: v.optional(v.number()),
+    feedbackPromptedAtSessionCount: v.optional(v.number()),
+    hasSeenOnboarding: v.optional(v.boolean()),
   }).index("by_clerkId", ["clerkId"]),
 
   tasks: defineTable({
@@ -27,14 +30,6 @@ export default defineSchema({
     order: v.number(),
     confirmed: v.optional(v.boolean()),
   }).index("by_taskId", ["taskId"]),
-
-  timetableCommitments: defineTable({
-    userId: v.id("users"),
-    date: v.string(),
-    title: v.string(),
-    startTime: v.number(),
-    endTime: v.number(),
-  }).index("by_userId_and_date", ["userId", "date"]),
 
   sessions: defineTable({
     userId: v.id("users"),
@@ -71,4 +66,11 @@ export default defineSchema({
     properties: v.optional(v.any()),
     timestamp: v.number(),
   }).index("by_userId_and_name", ["userId", "name"]),
+
+  feedback: defineTable({
+    userId: v.id("users"),
+    rating: v.number(),
+    comment: v.string(),
+    createdAt: v.number(),
+  }),
 });

@@ -10,12 +10,12 @@
 
 import type * as breakdown from "../breakdown.js";
 import type * as driftEvents from "../driftEvents.js";
+import type * as feedback from "../feedback.js";
 import type * as focusStreaks from "../focusStreaks.js";
 import type * as schedule from "../schedule.js";
 import type * as sessions from "../sessions.js";
 import type * as subtasks from "../subtasks.js";
 import type * as tasks from "../tasks.js";
-import type * as timetable from "../timetable.js";
 import type * as users from "../users.js";
 
 import type {
@@ -27,12 +27,12 @@ import type {
 declare const fullApi: ApiFromModules<{
   breakdown: typeof breakdown;
   driftEvents: typeof driftEvents;
+  feedback: typeof feedback;
   focusStreaks: typeof focusStreaks;
   schedule: typeof schedule;
   sessions: typeof sessions;
   subtasks: typeof subtasks;
   tasks: typeof tasks;
-  timetable: typeof timetable;
   users: typeof users;
 }>;
 
