@@ -14,7 +14,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { ActiveSessionPanel } from "@/app/today/ActiveSessionPanel";
 import { TaskItem } from "@/app/today/TaskItem";
 import { FeedbackPrompt } from "@/app/today/FeedbackPrompt";
-import { OnboardingProvider, TourStep } from "@/app/today/OnboardingTour";
+import {
+  OnboardingProvider,
+  OnboardingReplayButton,
+  TourStep,
+} from "@/app/today/OnboardingTour";
 
 // How often the "now" used for the finish-by projection refreshes. Convex
 // queries shouldn't read the wall clock internally (results wouldn't
@@ -75,7 +79,10 @@ export default function TodayPage() {
           >
             <h1 className="text-xl font-semibold">Today — {today}</h1>
           </TourStep>
-          <UserButton />
+          <div className="flex items-center gap-1">
+            <OnboardingReplayButton />
+            <UserButton />
+          </div>
         </div>
 
         {activeSession ? (

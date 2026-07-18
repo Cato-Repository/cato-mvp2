@@ -3,6 +3,7 @@
 import { createContext, useContext, useState, type ReactNode } from "react";
 import { useMutation, useQuery } from "convex/react";
 import { api } from "@/convex/_generated/api";
+import { HelpCircle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Popover,
@@ -19,6 +20,7 @@ type OnboardingContextValue = {
   currentStep: number;
   next: () => void;
   skip: () => void;
+  restart: () => void;
 };
 
 const OnboardingContext = createContext<OnboardingContextValue | null>(null);
@@ -27,31 +29,40 @@ export function OnboardingProvider({ children }: { children: ReactNode }) {
   const status = useQuery(api.users.getOnboardingStatus, {});
   const markSeen = useMutation(api.users.markOnboardingSeen);
   const [dismissedLocally, setDismissedLocally] = useState(false);
-
-  const currentStep =
-    status === undefined || status.hasSeenOnboarding || dismissedLocally
-      ? 0
-      : 1;
-
+  const [manuallyTriggered, setManuallyTriggered] = useState(false);
   const [step, setStep] = useState(1);
-  const activeStep = currentStep === 0 ? 0 : step;
+
+  const shouldAutoShow =
+    status !== undefined && !status.hasSeenOnboarding && !dismissedLocally;
+  const isActive = shouldAutoShow || manuallyTriggered;
+  const currentStep = isActive ? step : 0;
+
+  function finish() {
+    setDismissedLocally(true);
+    setManuallyTriggered(false);
+    setStep(1);
+    void markSeen({});
+  }
 
   function next() {
     if (step >= TOTAL_STEPS) {
-      setDismissedLocally(true);
-      void markSeen({});
+      finish();
       return;
     }
     setStep((s) => s + 1);
   }
 
   function skip() {
-    setDismissedLocally(true);
-    void markSeen({});
+    finish();
+  }
+
+  function restart() {
+    setStep(1);
+    setManuallyTriggered(true);
   }
 
   return (
-    <OnboardingContext.Provider value={{ currentStep: activeStep, next, skip }}>
+    <OnboardingContext.Provider value={{ currentStep, next, skip, restart }}>
       {children}
     </OnboardingContext.Provider>
   );
@@ -63,6 +74,15 @@ function useOnboarding() {
     throw new Error("useOnboarding must be used inside OnboardingProvider");
   }
   return ctx;
+}
+
+export function OnboardingReplayButton() {
+  const { restart } = useOnboarding();
+  return (
+    <Button type="button" variant="ghost" size="icon" onClick={restart} aria-label="Show tutorial">
+      <HelpCircle className="h-4 w-4" />
+    </Button>
+  );
 }
 
 export function TourStep({
