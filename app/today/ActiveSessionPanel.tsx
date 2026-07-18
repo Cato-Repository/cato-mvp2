@@ -6,8 +6,6 @@ import { toast } from "sonner";
 import { api } from "@/convex/_generated/api";
 import type { Id } from "@/convex/_generated/dataModel";
 import {
-  Camera,
-  CameraOff,
   Loader2,
   MonitorCheck,
   MonitorOff,
@@ -78,6 +76,7 @@ export function ActiveSessionPanel({
   const [webcamStatus, setWebcamStatus] = useState<WebcamStatus>("pending");
   const [screenStatus, setScreenStatus] = useState<ScreenStatus>("not-shared");
   const [afkWarning, setAfkWarning] = useState<string | null>(null);
+  const [showScreenShareInfo, setShowScreenShareInfo] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const [isEnding, setIsEnding] = useState(false);
 
@@ -200,6 +199,7 @@ export function ActiveSessionPanel({
   }, [sessionId]);
 
   async function handleShareScreen() {
+    setShowScreenShareInfo(false);
     try {
       const handle = await startScreenActivityDetection((state) => {
         if (statusRef.current !== "active") return;
@@ -270,12 +270,8 @@ export function ActiveSessionPanel({
 
         <div className="flex items-center gap-2">
           <Badge variant={webcamStatus === "present" ? "secondary" : "outline"}>
-            {webcamStatus === "pending" ? (
+            {webcamStatus === "pending" && (
               <Loader2 className="h-3 w-3 animate-spin" />
-            ) : webcamStatus === "unavailable" || webcamStatus === "away" ? (
-              <CameraOff className="h-3 w-3" />
-            ) : (
-              <Camera className="h-3 w-3" />
             )}
             {webcamStatus === "pending"
               ? "starting…"
@@ -292,6 +288,35 @@ export function ActiveSessionPanel({
             {screenStatus === "not-shared" ? "not shared" : screenStatus}
           </Badge>
         </div>
+
+        <Dialog open={showScreenShareInfo} onOpenChange={setShowScreenShareInfo}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Why share your screen?</DialogTitle>
+              <DialogDescription>
+                On top of your webcam, sharing your screen lets Cato notice if
+                you&apos;ve gone idle there too — useful since you might look
+                away from the camera for a second while still actively
+                working, or vice versa. It&apos;s entirely optional: nothing
+                is uploaded, only local pixel-level activity is checked
+                on-device in your browser. You can decline and Cato will keep
+                tracking via webcam alone.
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setShowScreenShareInfo(false)}
+              >
+                Not now
+              </Button>
+              <Button type="button" onClick={handleShareScreen}>
+                Share my screen
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
 
         <Dialog open={afkWarning !== null} onOpenChange={(open) => !open && setAfkWarning(null)}>
           <DialogContent>
@@ -336,20 +361,15 @@ export function ActiveSessionPanel({
             </Button>
           )}
           {screenStatus === "not-shared" && (
-            <div className="flex flex-col gap-1">
-              <Button
-                type="button"
-                variant="outline"
-                size="sm"
-                onClick={handleShareScreen}
-              >
-                <MonitorUp className="h-4 w-4" />
-                Share screen
-              </Button>
-              <span className="text-muted-foreground text-xs">
-                Optional — also flags if you go idle on screen, not just camera.
-              </span>
-            </div>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setShowScreenShareInfo(true)}
+            >
+              <MonitorUp className="h-4 w-4" />
+              Share screen
+            </Button>
           )}
           <Button
             type="button"
