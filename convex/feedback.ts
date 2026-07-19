@@ -2,10 +2,8 @@ import { v } from "convex/values";
 import { mutation, query } from "./_generated/server";
 import { getCurrentUser } from "./users";
 
-// How many completed sessions between feedback prompts. Not specified by
-// the user — picked as a reasonable default, easy to tune.
-const FEEDBACK_PROMPT_INTERVAL = 5;
-
+// Once-in-a-lifetime prompt: shown until the user submits feedback, then
+// never again. Tracked via a plain boolean rather than counting rows.
 export const getFeedbackPromptStatus = query({
   args: {},
   handler: async (ctx) => {
@@ -14,12 +12,7 @@ export const getFeedbackPromptStatus = query({
       return { shouldPrompt: false };
     }
 
-    const completedCount = user.completedSessionCount ?? 0;
-    const promptedAt = user.feedbackPromptedAtSessionCount ?? 0;
-
-    return {
-      shouldPrompt: completedCount >= promptedAt + FEEDBACK_PROMPT_INTERVAL,
-    };
+    return { shouldPrompt: !(user.hasSubmittedFeedback ?? false) };
   },
 });
 
@@ -48,8 +41,6 @@ export const submitFeedback = mutation({
       createdAt: Date.now(),
     });
 
-    await ctx.db.patch("users", user._id, {
-      feedbackPromptedAtSessionCount: user.completedSessionCount ?? 0,
-    });
+    await ctx.db.patch("users", user._id, { hasSubmittedFeedback: true });
   },
 });

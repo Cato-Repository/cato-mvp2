@@ -9,7 +9,7 @@ export default defineSchema({
     plan: v.string(),
     createdAt: v.number(),
     completedSessionCount: v.optional(v.number()),
-    feedbackPromptedAtSessionCount: v.optional(v.number()),
+    hasSubmittedFeedback: v.optional(v.boolean()),
     hasSeenOnboarding: v.optional(v.boolean()),
   }).index("by_clerkId", ["clerkId"]),
 
